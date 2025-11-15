@@ -1,12 +1,12 @@
 from flask import Flask, request, jsonify
 import os
-import psycopg2
+import psycopg
 from urllib.parse import urlparse
 
 app = Flask(__name__)
 
 
-# Подключение к БД
+# Подключение к БД с использованием psycopg v3
 def get_db_connection():
     DATABASE_URL = os.environ.get('DATABASE_URL')
     if DATABASE_URL:
@@ -14,15 +14,9 @@ def get_db_connection():
         if DATABASE_URL.startswith('postgres://'):
             DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
 
-        url = urlparse(DATABASE_URL)
         try:
-            conn = psycopg2.connect(
-                database=url.path[1:],
-                user=url.username,
-                password=url.password,
-                host=url.hostname,
-                port=url.port
-            )
+            # psycopg v3 использует строку подключения напрямую
+            conn = psycopg.connect(DATABASE_URL)
             return conn
         except Exception as e:
             print(f"Database connection error: {e}")
