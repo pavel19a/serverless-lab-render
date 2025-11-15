@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 import os
-import psycopg2
+import psycopg
 from urllib.parse import urlparse
 
 app = Flask(__name__)
@@ -16,7 +16,7 @@ def get_db_connection():
 
         try:
             # psycopg v3 использует строку подключения напрямую
-            conn = psycopg2.connect(DATABASE_URL)
+            conn = psycopg.connect(DATABASE_URL)
             return conn
         except Exception as e:
             print(f"Database connection error: {e}")
