@@ -1,16 +1,19 @@
 from flask import Flask, request, jsonify
-import psycopg2
 import os
+import pg8000
 from urllib.parse import urlparse
 
 app = Flask(__name__)
 
-# Подключение к БД
+
+# Подключение к БД с pg8000
 def get_db_connection():
     DATABASE_URL = os.environ.get('DATABASE_URL')
     if DATABASE_URL:
         url = urlparse(DATABASE_URL)
-        conn = psycopg2.connect(
+
+        # Подключение через pg8000
+        conn = pg8000.connect(
             database=url.path[1:],
             user=url.username,
             password=url.password,
@@ -20,27 +23,35 @@ def get_db_connection():
         return conn
     return None
 
+
 # Создание таблицы при старте
 def init_db():
     conn = get_db_connection()
     if conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS messages (
-                    id SERIAL PRIMARY KEY,
-                    content TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT NOW()
-                )
-            """)
-            conn.commit()
-        conn.close()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS messages (
+                        id SERIAL PRIMARY KEY,
+                        content TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )
+                """)
+                conn.commit()
+        except Exception as e:
+            print(f"Database init error: {e}")
+        finally:
+            conn.close()
+
 
 # Инициализируем БД при запуске
 init_db()
 
+
 @app.route('/')
 def hello():
     return "Hello, Serverless! 🚀\n", 200, {'Content-Type': 'text/plain'}
+
 
 @app.route('/echo', methods=['POST'])
 def echo():
@@ -50,6 +61,7 @@ def echo():
         "you_sent": data,
         "length": len(str(data)) if data else 0
     })
+
 
 @app.route('/save', methods=['POST'])
 def save_message():
@@ -70,6 +82,7 @@ def save_message():
         conn.close()
         return jsonify({"error": str(e)}), 500
 
+
 @app.route('/messages')
 def get_messages():
     conn = get_db_connection()
@@ -87,6 +100,7 @@ def get_messages():
     except Exception as e:
         conn.close()
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
